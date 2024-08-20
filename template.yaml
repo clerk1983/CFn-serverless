@@ -1,51 +1,106 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::Serverless-2016-10-31
 Description: >
-  SAM Template for a web application with S3, API Gateway, Lambda, and DynamoDB.
+  CloudFormation Template for a web application with S3, API Gateway, Lambda, and DynamoDB.
 
 Resources:
   # S3 Bucket for hosting the static website
   FrontEndBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-frontend-s3-${AWS::Region}-${AWS::AccountId}" # Name of the S3 bucket for static website
+      BucketName: !Sub "${AWS::StackName}-frontend-s3-${AWS::Region}-${AWS::AccountId}"
       WebsiteConfiguration:
-        IndexDocument: index.html # The default index document for the website
-        ErrorDocument: error.html # The default error document for the website
+        IndexDocument: index.html
+        ErrorDocument: error.html
       OwnershipControls:
         Rules:
-          - ObjectOwnership: BucketOwnerPreferred # Set the bucket ownership to bucket owner preferred
+          - ObjectOwnership: BucketOwnerPreferred
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: false # Do not block public ACLs
-        IgnorePublicAcls: false # Do not ignore public ACLs
-        BlockPublicPolicy: false # Do not block public bucket policies
-        RestrictPublicBuckets: false # Do not restrict public buckets
-    DeletionPolicy: Delete # Retain the bucket even if the stack is deleted
-    UpdateReplacePolicy: Delete # Retain the table even if the resource is replaced
+        BlockPublicAcls: false
+        IgnorePublicAcls: false
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
 
   # BucketPolicy for the S3 bucket to allow public access
   FrontEndBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref FrontEndBucket # Reference to the FrontEndBucket
+      Bucket: !Ref FrontEndBucket
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: PublicReadGetObject # Policy to allow public read access to objects
+          - Sid: PublicReadGetObject
             Effect: Allow
-            Principal: "*" # Allow access to everyone
-            Action: "s3:GetObject" # Allow GET object actions
-            Resource: !Sub "arn:aws:s3:::${FrontEndBucket}/*" # Apply to all objects in the bucket
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${FrontEndBucket}/*"
 
   # API Gateway
   BackendFunctionApi:
-    Type: AWS::Serverless::Api
+    Type: AWS::ApiGateway::RestApi
     Properties:
-      StageName: Prod
-      Cors:
-        AllowMethods: "'*'"
-        AllowHeaders: "'*'"
-        AllowOrigin: "'*'"
+      Name: !Sub "${AWS::StackName}-api"
+      Description: "API Gateway for the backend functions"
+      FailOnWarnings: true
+      MinimumCompressionSize: 0
+
+  ApiResourceGames:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt BackendFunctionApi.RootResourceId
+      PathPart: games
+      RestApiId: !Ref BackendFunctionApi
+
+  ApiResourceGameTurns:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiResourceGames
+      PathPart: turns
+      RestApiId: !Ref BackendFunctionApi
+
+  ApiResourceGameTurn:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiResourceGameTurns
+      PathPart: "{turnCount}"
+      RestApiId: !Ref BackendFunctionApi
+
+  ApiMethodGamesPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref ApiResourceGames
+      RestApiId: !Ref BackendFunctionApi
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesPostFunction.Arn}/invocations"
+
+  ApiMethodGameTurnsPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref ApiResourceGameTurns
+      RestApiId: !Ref BackendFunctionApi
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsPostFunction.Arn}/invocations"
+
+  ApiMethodGameTurnGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref ApiResourceGameTurn
+      RestApiId: !Ref BackendFunctionApi
+      Integration:
+        IntegrationHttpMethod: GET
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsGetFunction.Arn}/invocations"
 
   # IAM role for Lambda functions with necessary permissions for DynamoDB access
   BackendFunctionExecutionRole:
@@ -56,91 +111,72 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: lambda.amazonaws.com # Allow the Lambda service to assume this role
-            Action: sts:AssumeRole # Action for assuming the role
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole # Managed policy for basic Lambda execution
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: DynamoDBAccess # Custom policy for DynamoDB access
+        - PolicyName: DynamoDBAccess
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - dynamodb:GetItem # Allow getting items from DynamoDB
-                  - dynamodb:PutItem # Allow putting items into DynamoDB
-                  - dynamodb:UpdateItem # Allow updating items in DynamoDB
-                  - dynamodb:DeleteItem # Allow deleting items from DynamoDB
-                  - dynamodb:Scan # Allow scanning DynamoDB tables
-                  - dynamodb:Query # Allow querying DynamoDB tables
-                Resource:
-                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/rvs-*" # Target the specific DynamoDB table
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/rvs-*"
 
   GamesPostFunction:
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
     Properties:
-      Handler: index.handler # The handler for the Lambda function
-      Runtime: nodejs20.x # Runtime environment for the Lambda function
-      CodeUri: ./packages/backend/dist/invoke/games-post # Path to the function code
-      Role: !GetAtt BackendFunctionExecutionRole.Arn # IAM role for the Lambda function
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Code:
+        S3Bucket: your-s3-bucket-name
+        S3Key: path/to/your/deployment-package.zip
+      Role: !GetAtt BackendFunctionExecutionRole.Arn
       Environment:
         Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_TURNS: !Ref TurnsTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_SQUARE: !Ref SquareTable # Environment variable pointing to the DynamoDB table
-
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId: !Ref BackendFunctionApi
-            Path: /games/{gameId}
-            Method: POST
+          TABLE_NAME_GAMES: !Ref GamesTable
+          TABLE_NAME_TURNS: !Ref TurnsTable
+          TABLE_NAME_SQUARE: !Ref SquareTable
 
   GamesTurnsGetFunction:
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
     Properties:
-      Handler: index.handler # The handler for the Lambda function
-      Runtime: nodejs20.x # Runtime environment for the Lambda function
-      CodeUri: ./packages/backend/dist/invoke/games-turns-get # Path to the function code
-      Role: !GetAtt BackendFunctionExecutionRole.Arn # IAM role for the Lambda function
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Code:
+        S3Bucket: your-s3-bucket-name
+        S3Key: path/to/your/deployment-package.zip
+      Role: !GetAtt BackendFunctionExecutionRole.Arn
       Environment:
         Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_TURNS: !Ref TurnsTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_SQUARE: !Ref SquareTable # Environment variable pointing to the DynamoDB table
-
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId: !Ref BackendFunctionApi
-            Path: /games/{gameId}/turns/{turnCount}
-            Method: GET
+          TABLE_NAME_GAMES: !Ref GamesTable
+          TABLE_NAME_TURNS: !Ref TurnsTable
+          TABLE_NAME_SQUARE: !Ref SquareTable
 
   GamesTurnsPostFunction:
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
     Properties:
-      Handler: index.handler # The handler for the Lambda function
-      Runtime: nodejs20.x # Runtime environment for the Lambda function
-      CodeUri: ./packages/backend/dist/invoke/games-turns-post # Path to the function code
-      Role: !GetAtt BackendFunctionExecutionRole.Arn # IAM role for the Lambda function
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Code:
+        S3Bucket: your-s3-bucket-name
+        S3Key: path/to/your/deployment-package.zip
+      Role: !GetAtt BackendFunctionExecutionRole.Arn
       Environment:
         Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_TURNS: !Ref TurnsTable # Environment variable pointing to the DynamoDB table
-          TABLE_NAME_SQUARE: !Ref SquareTable # Environment variable pointing to the DynamoDB table
-
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId: !Ref BackendFunctionApi
-            Path: /games/{gameId}/turns
-            Method: POST
+          TABLE_NAME_GAMES: !Ref GamesTable
+          TABLE_NAME_TURNS: !Ref TurnsTable
+          TABLE_NAME_SQUARE: !Ref SquareTable
 
   GamesTable:
-    Type: "AWS::DynamoDB::Table"
+    Type: AWS::DynamoDB::Table
     Properties:
       TableName: "rvs-games"
       AttributeDefinitions:
@@ -150,11 +186,11 @@ Resources:
         - AttributeName: "game_id"
           KeyType: "HASH"
       BillingMode: "PAY_PER_REQUEST"
-    DeletionPolicy: Delete # Retain the table even if the stack is deleted
-    UpdateReplacePolicy: Delete # Retain the table even if the resource is replaced
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
 
   TurnsTable:
-    Type: "AWS::DynamoDB::Table"
+    Type: AWS::DynamoDB::Table
     Properties:
       TableName: "rvs-turns"
       AttributeDefinitions:
@@ -168,11 +204,11 @@ Resources:
         - AttributeName: "turn_count"
           KeyType: "RANGE"
       BillingMode: "PAY_PER_REQUEST"
-    DeletionPolicy: Delete # Retain the table even if the stack is deleted
-    UpdateReplacePolicy: Delete # Retain the table even if the resource is replaced
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
 
   SquareTable:
-    Type: "AWS::DynamoDB::Table"
+    Type: AWS::DynamoDB::Table
     Properties:
       TableName: "rvs-square"
       AttributeDefinitions:
@@ -182,8 +218,8 @@ Resources:
         - AttributeName: "turn_id"
           KeyType: "HASH"
       BillingMode: "PAY_PER_REQUEST"
-    DeletionPolicy: Delete # Retain the table even if the stack is deleted
-    UpdateReplacePolicy: Delete # Retain the table even if the resource is replaced
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
 
 Outputs:
   # Output the URL of the static website hosted in S3
