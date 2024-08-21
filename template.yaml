@@ -45,140 +45,140 @@ Resources:
       FailOnWarnings: true
       MinimumCompressionSize: 0
 
-  ApiResourceGames:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt BackendFunctionApi.RootResourceId
-      PathPart: games
-      RestApiId: !Ref BackendFunctionApi
+  # ApiResourceGames:
+  #   Type: AWS::ApiGateway::Resource
+  #   Properties:
+  #     ParentId: !GetAtt BackendFunctionApi.RootResourceId
+  #     PathPart: games
+  #     RestApiId: !Ref BackendFunctionApi
 
-  ApiResourceGameTurns:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref ApiResourceGames
-      PathPart: turns
-      RestApiId: !Ref BackendFunctionApi
+  # ApiResourceGameTurns:
+  #   Type: AWS::ApiGateway::Resource
+  #   Properties:
+  #     ParentId: !Ref ApiResourceGames
+  #     PathPart: turns
+  #     RestApiId: !Ref BackendFunctionApi
 
-  ApiResourceGameTurn:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref ApiResourceGameTurns
-      PathPart: "{turnCount}"
-      RestApiId: !Ref BackendFunctionApi
+  # ApiResourceGameTurn:
+  #   Type: AWS::ApiGateway::Resource
+  #   Properties:
+  #     ParentId: !Ref ApiResourceGameTurns
+  #     PathPart: "{turnCount}"
+  #     RestApiId: !Ref BackendFunctionApi
 
-  ApiMethodGamesPost:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: POST
-      ResourceId: !Ref ApiResourceGames
-      RestApiId: !Ref BackendFunctionApi
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesPostFunction.Arn}/invocations"
+  # ApiMethodGamesPost:
+  #   Type: AWS::ApiGateway::Method
+  #   Properties:
+  #     AuthorizationType: NONE
+  #     HttpMethod: POST
+  #     ResourceId: !Ref ApiResourceGames
+  #     RestApiId: !Ref BackendFunctionApi
+  #     Integration:
+  #       IntegrationHttpMethod: POST
+  #       Type: AWS_PROXY
+  #       Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesPostFunction.Arn}/invocations"
 
-  ApiMethodGameTurnsPost:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: POST
-      ResourceId: !Ref ApiResourceGameTurns
-      RestApiId: !Ref BackendFunctionApi
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsPostFunction.Arn}/invocations"
+  # ApiMethodGameTurnsPost:
+  #   Type: AWS::ApiGateway::Method
+  #   Properties:
+  #     AuthorizationType: NONE
+  #     HttpMethod: POST
+  #     ResourceId: !Ref ApiResourceGameTurns
+  #     RestApiId: !Ref BackendFunctionApi
+  #     Integration:
+  #       IntegrationHttpMethod: POST
+  #       Type: AWS_PROXY
+  #       Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsPostFunction.Arn}/invocations"
 
-  ApiMethodGameTurnGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: GET
-      ResourceId: !Ref ApiResourceGameTurn
-      RestApiId: !Ref BackendFunctionApi
-      Integration:
-        IntegrationHttpMethod: GET
-        Type: AWS_PROXY
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsGetFunction.Arn}/invocations"
+  # ApiMethodGameTurnGet:
+  #   Type: AWS::ApiGateway::Method
+  #   Properties:
+  #     AuthorizationType: NONE
+  #     HttpMethod: GET
+  #     ResourceId: !Ref ApiResourceGameTurn
+  #     RestApiId: !Ref BackendFunctionApi
+  #     Integration:
+  #       IntegrationHttpMethod: GET
+  #       Type: AWS_PROXY
+  #       Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GamesTurnsGetFunction.Arn}/invocations"
 
   # IAM role for Lambda functions with necessary permissions for DynamoDB access
-  BackendFunctionExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: DynamoDBAccess
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                  - dynamodb:UpdateItem
-                  - dynamodb:DeleteItem
-                  - dynamodb:Scan
-                  - dynamodb:Query
-                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/rvs-*"
+  # BackendFunctionExecutionRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     ManagedPolicyArns:
+  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  #     Policies:
+  #       - PolicyName: DynamoDBAccess
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - dynamodb:GetItem
+  #                 - dynamodb:PutItem
+  #                 - dynamodb:UpdateItem
+  #                 - dynamodb:DeleteItem
+  #                 - dynamodb:Scan
+  #                 - dynamodb:Query
+  #               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/rvs-*"
 
-  GamesPostFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        S3Bucket: your-s3-bucket-name
-        S3Key: path/to/your/deployment-package.zip
-      Role: !GetAtt BackendFunctionExecutionRole.Arn
-      Environment:
-        Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable
-          TABLE_NAME_TURNS: !Ref TurnsTable
-          TABLE_NAME_SQUARE: !Ref SquareTable
+  # GamesPostFunction:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Code:
+  #       S3Bucket: your-s3-bucket-name
+  #       S3Key: path/to/your/deployment-package.zip
+  #     Role: !GetAtt BackendFunctionExecutionRole.Arn
+  #     Environment:
+  #       Variables:
+  #         TABLE_NAME_GAMES: !Ref GamesTable
+  #         TABLE_NAME_TURNS: !Ref TurnsTable
+  #         TABLE_NAME_SQUARE: !Ref SquareTable
 
-  GamesTurnsGetFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        S3Bucket: your-s3-bucket-name
-        S3Key: path/to/your/deployment-package.zip
-      Role: !GetAtt BackendFunctionExecutionRole.Arn
-      Environment:
-        Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable
-          TABLE_NAME_TURNS: !Ref TurnsTable
-          TABLE_NAME_SQUARE: !Ref SquareTable
+  # GamesTurnsGetFunction:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Code:
+  #       S3Bucket: your-s3-bucket-name
+  #       S3Key: path/to/your/deployment-package.zip
+  #     Role: !GetAtt BackendFunctionExecutionRole.Arn
+  #     Environment:
+  #       Variables:
+  #         TABLE_NAME_GAMES: !Ref GamesTable
+  #         TABLE_NAME_TURNS: !Ref TurnsTable
+  #         TABLE_NAME_SQUARE: !Ref SquareTable
 
-  GamesTurnsPostFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        S3Bucket: your-s3-bucket-name
-        S3Key: path/to/your/deployment-package.zip
-      Role: !GetAtt BackendFunctionExecutionRole.Arn
-      Environment:
-        Variables:
-          TABLE_NAME_GAMES: !Ref GamesTable
-          TABLE_NAME_TURNS: !Ref TurnsTable
-          TABLE_NAME_SQUARE: !Ref SquareTable
+  # GamesTurnsPostFunction:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Code:
+  #       S3Bucket: your-s3-bucket-name
+  #       S3Key: path/to/your/deployment-package.zip
+  #     Role: !GetAtt BackendFunctionExecutionRole.Arn
+  #     Environment:
+  #       Variables:
+  #         TABLE_NAME_GAMES: !Ref GamesTable
+  #         TABLE_NAME_TURNS: !Ref TurnsTable
+  #         TABLE_NAME_SQUARE: !Ref SquareTable
 
   GamesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: "rvs-games"
+      TableName: "rvs-cfn-games"
       AttributeDefinitions:
         - AttributeName: "game_id"
           AttributeType: "S"
@@ -192,7 +192,7 @@ Resources:
   TurnsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: "rvs-turns"
+      TableName: "rvs-cfn-turns"
       AttributeDefinitions:
         - AttributeName: "game_id"
           AttributeType: "S"
@@ -210,7 +210,7 @@ Resources:
   SquareTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: "rvs-square"
+      TableName: "rvs-cfn-square"
       AttributeDefinitions:
         - AttributeName: "turn_id"
           AttributeType: "S"
